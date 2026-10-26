@@ -14,12 +14,7 @@ import java.time.Instant;
  */
 public record UserResponse(
 
-        // TODO: add the correct fields from the User entity
-        //   id       (Long)
-        //   email    (String)
-        //   fullName (String)
-        //   role     (Role)
-        //   createdAt (Instant)
+
         Long id,
         String email,
         String fullName,
