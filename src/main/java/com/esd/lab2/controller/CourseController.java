@@ -31,7 +31,11 @@ public class CourseController {
     public ResponseEntity<List<CourseResponse>> listCourses() {
         return ResponseEntity.ok(courseService.findAll());
     }
-
+    /** P2 – public */
+    @GetMapping("/{id}")
+    public ResponseEntity<CourseResponse> getCourseById(@PathVariable Long id) {
+        return ResponseEntity.ok(courseService.findById(id));
+    }
     /** P3 – will be ADMIN-only after Slice 4 */
     @PostMapping
     public ResponseEntity<CourseResponse> createCourse(@Valid @RequestBody CourseRequest request) {

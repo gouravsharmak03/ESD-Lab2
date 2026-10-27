@@ -13,7 +13,7 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}          # Base64-encoded, at least 32 bytes — set via env variable
-  expiration-seconds: 3600
+  expiration-seconds: 900
 
 admin:
   email: admin@esd.local

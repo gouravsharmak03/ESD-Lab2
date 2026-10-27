@@ -307,15 +307,39 @@ Complete **one review entry per slice** before moving to the next.
 
 ## No-AI Change Tasks
 
+### Tasks completed
 
+| Task | Change | Verification |
+|---|---|---|
+| 1. JWT expiry | Set JWT expiration to 900 seconds (15 minutes). The login response's `expiresIn` reflects the configured expiry. | Login response returned `expiresIn: 900`. |
+| 2. Get course by ID | Added public `GET /api/courses/{id}`. A missing course raises `ResourceNotFoundException`. | Existing course ID `1` returned HTTP 200; nonexistent ID `999999` returned HTTP 404. |
+| 3. Update profile | Added authenticated `PUT /api/users/me`, allowing a logged-in user to update their `fullName`. | Update returned HTTP 200, and `GET /api/users/me` showed the updated name with the user's role unchanged. |
+| 4. Password validation | Signup password must contain at least one digit, with a field-specific validation error. | Password `NoDigitsHere!` returned HTTP 400 with `fieldErrors.password` set to `Password must contain at least one digit`. |
+| 5. Protect course list | Removed public access to `GET /api/courses`. The endpoint now requires authentication; `GET /api/courses/{id}` remains public. | Without a token, the list returned HTTP 401. With a valid STUDENT token, it returned HTTP 200. A single-course request without a token returned HTTP 200. |
 
-**Files changed:**
+### Files changed
 
 | File | What changed and why |
 |---|---|
-| `src/main/java/com/esd/lab2/security/TokenDenylistService.java` | Added an in-memory, thread-safe denylist keyed by JWT ID, with expiry-based cleanup |
-| `src/main/java/com/esd/lab2/security/JwtAuthenticationFilter.java` | Added a denylist check so logged-out tokens cannot authenticate |
-| `src/main/java/com/esd/lab2/controller/AuthController.java` | Added `POST /api/auth/logout` to deny the current token until it expires |
+| `src/main/resources/application.yml` | Set JWT expiration to 900 seconds. |
+| `src/main/java/com/esd/lab2/controller/CourseController.java` | Added the endpoint to fetch a course by ID. |
+| `src/main/java/com/esd/lab2/config/SecurityConfig.java` | Kept single-course GET public, protected the course-list GET endpoint, and preserved the ADMIN-only POST rule. |
+| `src/main/java/com/esd/lab2/dto/UpdateProfileRequest.java` | Added a request DTO for profile updates. |
+| `src/main/java/com/esd/lab2/controller/UserController.java` | Added authenticated profile updates that change `fullName`. |
+| `src/main/java/com/esd/lab2/dto/SignupRequest.java` | Added password validation requiring at least one digit. |
+| `src/main/java/com/esd/lab2/security/TokenDenylistService.java` | Added an in-memory, thread-safe denylist keyed by JWT ID, with expiry-based cleanup. |
+| `src/main/java/com/esd/lab2/security/JwtAuthenticationFilter.java` | Added a denylist check so logged-out tokens cannot authenticate. |
+| `src/main/java/com/esd/lab2/controller/AuthController.java` | Added `POST /api/auth/logout` to deny the current token until it expires. |
 
-**Explanation (your own words):**
-> I added a service to store logged-out JWT IDs and their expiration times. The authentication filter checks the denylist after validating a token. The logout endpoint adds the current token ID to the denylist. I tested logout and received HTTP 204, reused the same token and received HTTP 401, then logged in again and verified that the fresh token accessed the protected endpoint with HTTP 200. The denylist is stored in memory, so entries do not survive a server restart.``
+### Expected test changes
+
+- Tests that expect unauthenticated `GET /api/courses` requests to return HTTP 200 will now fail by design; they should expect HTTP 401 instead.
+- Tests that call `GET /api/courses` with a valid token should continue to pass.
+- `GET /api/courses/{id}` remains public, so existing tests for that endpoint should continue to pass.
+- Signup tests using passwords without digits should now expect HTTP 400 and a password field validation error.
+
+### Explanation
+
+The JWT lifetime is now 15 minutes, and the login response reports the configured expiry. A public endpoint was added to retrieve a course by ID, returning HTTP 404 when the course does not exist. Authenticated users can update their own full name through `PUT /api/users/me`. Signup rejects passwords that do not contain a digit. Finally, listing all courses now requires authentication, while retrieving one course by ID remains public.
+
+The logout implementation stores logged-out JWT IDs and their expiration times in an in-memory denylist. The authentication filter checks the denylist, and the logout endpoint adds the current token ID to it. The logout flow was tested: logout returned HTTP 204, reuse of the same token returned HTTP 401, and a fresh login produced a working token. Because the denylist is in memory, its entries do not survive a server restart.

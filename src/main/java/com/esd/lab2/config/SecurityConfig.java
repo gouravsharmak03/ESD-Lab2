@@ -63,15 +63,18 @@ public class SecurityConfig {
                                 "/api/auth/signup",
                                 "/api/auth/login"
                         ).permitAll()
+                        // Public: fetch a single course by ID
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/courses"
+                                "/api/courses/{id}"
                         ).permitAll()
-                        // S4: Only ADMIN users can create courses.
+                        // Creating a course requires ADMIN role
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/courses"
                         ).hasRole("ADMIN")
+                        // All other endpoints, including GET /api/courses,
+                        // require authentication
                         .anyRequest().authenticated())
                 .addFilterBefore(
                         jwtAuthenticationFilter,
